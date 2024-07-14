@@ -22,7 +22,7 @@ const matrix_row_t matrix_mask[MATRIX_ROWS] = {
     0b01011111,
     0b00111111,
 
-    0b01111110,    
+    0b01111110,
     0b01111101,
     0b01111011,
     0b01110111,
@@ -41,13 +41,61 @@ void pointing_device_init_kb(void) {
 
 }
 
-// Contains report from sensor #0 already, need to merge in from sensor #1
-// report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
+report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
 
-//     return mouse_report;
 
-// }
+    int8_t x_rev =  + mouse_report.x;
+    int8_t y_rev =  + mouse_report.y;
 
+    if (false) {
+        // // rock scroll direction
+        // if (abs(x_rev) > abs(y_rev)) {
+        //     y_rev = 0;
+        // } else {
+        //     x_rev = 0;
+        // }
+
+        // // accumulate scroll
+        // h_acm += x_rev * cocot_config.scrl_inv;
+        // v_acm += y_rev * cocot_config.scrl_inv * -1;
+
+        // int8_t h_rev = h_acm >> scrl_div_array[cocot_config.scrl_div];
+        // int8_t v_rev = v_acm >> scrl_div_array[cocot_config.scrl_div];
+
+        // // clear accumulated scroll on assignment
+
+        // if (h_rev != 0) {
+        //     if (mouse_report.h + h_rev > 127) {
+        //         h_rev = 127 - mouse_report.h;
+        //     } else if (mouse_report.h + h_rev < -127) {
+        //         h_rev = -127 - mouse_report.h;
+        //     }
+        //     mouse_report.h += h_rev;
+        //     h_acm -= h_rev << scrl_div_array[cocot_config.scrl_div];
+        // }
+        // if (v_rev != 0) {
+        //     if (mouse_report.v + v_rev > 127) {
+        //         v_rev = 127 - mouse_report.v;
+        //     } else if (mouse_report.v + v_rev < -127) {
+        //         v_rev = -127 - mouse_report.v;
+        //     }
+        //     mouse_report.v += v_rev;
+        //     v_acm -= v_rev << scrl_div_array[cocot_config.scrl_div];
+        // }
+
+        mouse_report.x = 0;
+        mouse_report.y = 0;
+        mouse_report.h = y_rev * -1;
+        mouse_report.v = x_rev * -1;
+    } else {
+        mouse_report.x = y_rev * -1;
+        mouse_report.y = x_rev * -1;
+        mouse_report.h = 0;
+        mouse_report.v = 0;
+    }
+
+    return pointing_device_task_user(mouse_report);
+}
 #endif
 
 #ifdef OLED_ENABLE

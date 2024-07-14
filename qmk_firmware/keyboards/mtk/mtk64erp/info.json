@@ -9,8 +9,8 @@
         "bootmagic": false,
         "command": false,
         "console": false,
-        "extrakey": true,
-        "mousekey": true,
+        "extrakey": false,
+        "mousekey": false,
         "oled": true,
         "encoder": true,
         "nkro": true
@@ -47,7 +47,7 @@
                 { "label": "R04", "x": 4, "y": 7 },
                 { "label": "R05", "x": 5, "y": 7 },
                 { "label": "R06", "x": 6, "y": 7 },
-    
+
                 { "label": "L10", "x": 0, "y": 1 },
                 { "label": "L12", "x": 2, "y": 1 },
                 { "label": "L13", "x": 3, "y": 1 },
@@ -60,7 +60,7 @@
                 { "label": "R14", "x": 4, "y": 8 },
                 { "label": "R15", "x": 5, "y": 8 },
                 { "label": "R16", "x": 6, "y": 8 },
-        
+
                 { "label": "L20", "x": 0, "y": 2 },
                 { "label": "L21", "x": 1, "y": 2 },
                 { "label": "L23", "x": 3, "y": 2 },
@@ -73,7 +73,7 @@
                 { "label": "R24", "x": 9, "y": 2 },
                 { "label": "R25", "x": 8, "y": 2 },
                 { "label": "R26", "x": 7, "y": 2 },
-        
+
                 { "label": "L30", "x": 0, "y": 3 },
                 { "label": "L31", "x": 1, "y": 3 },
                 { "label": "L32", "x": 2, "y": 3 },
@@ -86,7 +86,7 @@
                 { "label": "R34", "x": 9, "y": 3 },
                 { "label": "R35", "x": 8, "y": 3 },
                 { "label": "R36", "x": 7, "y": 3 },
-        
+
                 { "label": "L40", "x": 0, "y": 4 },
                 { "label": "L41", "x": 1, "y": 4 },
                 { "label": "L46", "x": 6, "y": 4 },
