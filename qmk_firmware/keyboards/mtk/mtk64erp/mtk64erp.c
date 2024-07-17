@@ -33,19 +33,134 @@ const matrix_row_t matrix_mask[MATRIX_ROWS] = {
 };
 // clang-format on
 
+ee_config_t ee_config = {
+ .cpi = 0,
+ .sdiv = 0,
+};
+
+mtk_config_t mtk_config = {
+    .this_have_ball = false,
+    .that_enable    = false,
+    .that_have_ball = false,
+
+    .cpi_value   = 0,
+    .cpi_changed = false,
+
+    .scroll_mode = false,
+    .scroll_div  = 0,
+};
+
+ static void add_cpi(int16_t delta) {
+     int16_t v = mtk_get_cpi() + delta;
+     mtk_set_cpi(v < 1 ? 1 : v);
+ }
+
+ static void add_scroll_div(int16_t delta) {
+     int8_t v = mtk_get_scroll_div() + delta;
+     mtk_set_scroll_div(v < 1 ? 1 : v);
+ }
+
+
 #ifdef POINTING_DEVICE_ENABLE
-void pointing_device_init_kb(void) {
+#    if defined(POINTING_DEVICE_LEFT)
+#        define POINTING_DEVICE_THIS_SIDE is_keyboard_left()
+#    elif defined(POINTING_DEVICE_RIGHT)
+#        define POINTING_DEVICE_THIS_SIDE !is_keyboard_left()
+#    elif defined(POINTING_DEVICE_COMBINED)
+#        define POINTING_DEVICE_THIS_SIDE true
+#    endif
 
-    pmw33xx_init(0);         // index 1 is the second device.
-    pmw33xx_set_cpi(0, 1000); // applies to first sensor
+//////////////////////////////////////////////////////////////////////////////
+// Configurations
 
+#ifndef MTK_CPI_DEFAULT
+#    define MTK_CPI_DEFAULT 1000
+#endif
+
+
+#ifndef MTK_SCROLL_DIV_MIN
+#    define MTK_SCROLL_DIV_MIN 1
+#endif
+
+#ifndef MTK_SCROLL_DIV_DEFAULT
+#    define MTK_SCROLL_DIV_DEFAULT 4 // 4: 1/8 (1/2^(n-1))
+#endif
+
+#ifndef MTK_SCROLL_DIV_MAX
+#    define MTK_SCROLL_DIV_MAX 8
+#endif
+
+#ifndef MTK_REPORTMOUSE_INTERVAL
+#    define MTK_REPORTMOUSE_INTERVAL 8 // mouse report rate: 125Hz
+#endif
+
+#ifndef MTK_SCROLLBALL_INHIVITOR
+#    define MTK_SCROLLBALL_INHIVITOR 50
+#endif
+
+#ifndef MTK_SCROLLSNAP_ENABLE
+#    define MTK_SCROLLSNAP_ENABLE 1
+#endif
+
+#ifndef MTK_SCROLLSNAP_RESET_TIMER
+#    define MTK_SCROLLSNAP_RESET_TIMER 100
+#endif
+
+#ifndef MTK_SCROLLSNAP_TENSION_THRESHOLD
+#    define MTK_SCROLLSNAP_TENSION_THRESHOLD 12
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Constants
+
+#define MTK_TX_GETINFO_INTERVAL 500
+#define MTK_TX_GETINFO_MAXTRY 10
+#define MTK_TX_GETMOTION_INTERVAL 4
+
+//////////////////////////////////////////////////////////////////////////////
+// Types
+
+void eeconfig_init_kb(void) {
+    mtk_config.cpi_value = MTK_CPI_DEFAULT;
+    mtk_config.cpi_changed = false;
+    mtk_config.scroll_mode = false;
+    mtk_config.scroll_mode_changed = false;
+    mtk_config.scroll_div = MTK_SCROLL_DIV_DEFAULT;
+
+    ee_config_t c = {
+        .cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP,
+        .sdiv = mtk_config.scroll_div,
+    };
+    eeconfig_update_kb(c.raw);
+    eeconfig_init_user();
 }
 
+void matrix_init_kb(void) {
+    // is safe to just read CPI setting since matrix init
+    // comes before pointing device init.
+    ee_config.raw = eeconfig_read_kb();
+    mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
+    mtk_set_scroll_div(ee_config.sdiv);
+    if (mtk_config.cpi_value > PMW33XX_CPI_MAX){
+        eeconfig_init_kb();
+    }
+    matrix_init_user();
+}
+
+void pointing_device_init_kb(void) {
+        pmw33xx_init(0);         // index 1 is the second device.
+        pmw33xx_set_cpi(0, mtk_config.cpi_value); // applies to first sensor
+}
+
+int16_t x_rev_max = 0;
+int16_t y_rev_max = 0;
 report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
 
 
-    int8_t x_rev =  + mouse_report.x;
-    int8_t y_rev =  + mouse_report.y;
+    int16_t x_rev =  mouse_report.x;
+    int16_t y_rev =  mouse_report.y;
+    x_rev_max = (x_rev_max < x_rev ?  x_rev : x_rev_max);
+    y_rev_max = (y_rev_max < y_rev ?  y_rev : y_rev_max);
 
     if (false) {
         // // rock scroll direction
@@ -98,6 +213,123 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
 }
 #endif
 
+bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
+
+    if (!process_record_user(keycode, record)) {
+        return false;
+    }
+
+    // strip QK_MODS part.
+    if (keycode >= QK_MODS && keycode <= QK_MODS_MAX) {
+        keycode &= 0xff;
+    }
+
+    switch (keycode) {
+#ifndef MOUSEKEY_ENABLE
+        // process KC_MS_BTN1~8 by myself
+        // See process_action() in quantum/action.c for details.
+        case KC_MS_BTN1 ... KC_MS_BTN8: {
+            extern void register_mouse(uint8_t mouse_keycode, bool pressed);
+            register_mouse(keycode, record->event.pressed);
+            // to apply QK_MODS actions, allow to process others.
+            return true;
+        }
+#endif
+
+        case SCRL_MO:
+            mtk_set_scroll_mode(record->event.pressed);
+            return false;
+    }
+
+    // process events which works on pressed only.
+    if (record->event.pressed) {
+
+        set_keylog(keycode, record);
+
+        switch (keycode) {
+            case KBC_RST:
+                ee_config.raw = eeconfig_read_kb();
+                mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
+                mtk_set_scroll_div(ee_config.sdiv);
+                break;
+            case KBC_SAVE:
+                ee_config.cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP;
+                ee_config.sdiv = mtk_config.scroll_div;
+                eeconfig_update_kb(ee_config.raw);
+                break;
+            case CPI_I100:
+                add_cpi(100);
+                break;
+            case CPI_D100:
+                add_cpi(-100);
+                break;
+            case CPI_I1K:
+                add_cpi(1000);
+                break;
+            case CPI_D1K:
+                add_cpi(-1000);
+                break;
+
+            case SCRL_TO:
+                mtk_set_scroll_mode(!mtk_config.scroll_mode);
+                break;
+            case SCRL_DVI:
+                add_scroll_div(1);
+                break;
+            case SCRL_DVD:
+                add_scroll_div(-1);
+                break;
+
+            default:
+                return true;
+        }
+        return false;
+    }
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// configration function
+
+bool mtk_get_scroll_mode(void) {
+    return mtk_config.scroll_mode;
+}
+
+void mtk_set_scroll_mode(bool mode) {
+    if (mode != mtk_config.scroll_mode) {
+        mtk_config.scroll_mode_changed = timer_read32();
+    }
+    mtk_config.scroll_mode = mode;
+}
+
+uint8_t mtk_get_scroll_div(void) {
+    return mtk_config.scroll_div == 0 ? MTK_SCROLL_DIV_DEFAULT : mtk_config.scroll_div;
+}
+
+void mtk_set_scroll_div(uint8_t div) {
+    mtk_config.scroll_div = div > MTK_SCROLL_DIV_MAX ? MTK_SCROLL_DIV_MAX : div;
+}
+
+uint16_t mtk_get_cpi(void) {
+    return mtk_config.cpi_value == 0 ? MTK_CPI_DEFAULT : mtk_config.cpi_value;
+}
+
+void mtk_set_cpi(uint16_t cpi) {
+    if (cpi > PMW33XX_CPI_MAX) {
+       cpi = PMW33XX_CPI_MAX;
+    }else if (cpi < PMW33XX_CPI_MIN) {
+       cpi = PMW33XX_CPI_MIN;
+    }
+    mtk_config.cpi_value   = cpi;
+    mtk_config.cpi_changed = true;
+    //pmw33xx_set_cpi(0, cpi == 0 ? MTK_CPI_DEFAULT - 1 : cpi - 1);
+    pointing_device_set_cpi(cpi == 0 ? MTK_CPI_DEFAULT - 1 : cpi - 1);
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+// oled function
+
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_kb(oled_rotation_t rotation) {
     if (is_keyboard_left()) {
@@ -128,20 +360,22 @@ void set_keylog(uint16_t keycode, keyrecord_t *record) {
     }
 
   // update keylog
-  snprintf(keylog_str, sizeof(keylog_str), "c:%2d r:%2d k:%2d n:%c",
+  snprintf(keylog_str, sizeof(keylog_str), "c:%-2d r:%-2d k:%04x n:%-c",
            record->event.key.row, record->event.key.col,
            keycode, name);
 }
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  if (record->event.pressed) {
-    set_keylog(keycode, record);
-  }
-  return true;
-}
-
 void oled_render_keylog(void) {
     oled_write_ln_P(keylog_str, false);
+}
+
+char pointing_str[23] = {};
+void oled_render_pointing(void) {
+//    if(mtk_config.cpi_changed || mtk_config.scroll_div_changed || mtk_config.scroll_mode_changed || sizeof(keylog_str) == 0){
+         snprintf(pointing_str, sizeof(pointing_str), "cpi:%-5d div:%-d sc:%-d",
+           mtk_config.cpi_value, mtk_config.scroll_div, mtk_config.scroll_mode);
+//    }
+    oled_write_ln_P(pointing_str, false);
 }
 
 bool oled_task_kb(void) {
@@ -151,17 +385,23 @@ bool oled_task_kb(void) {
     oled_write_ln_P(get_u8_str(get_highest_layer(layer_state), ' '), false);
 
     oled_render_keylog();
+    oled_render_pointing();
 
 #   ifdef RGBLIGHT_ENABLE
-        oled_write_P(PSTR("RGB Mode: "), false);
+        oled_write_P(PSTR("RGB Mode:"), false);
         oled_write_ln(get_u8_str(rgblight_get_mode(), ' '), false);
-        oled_write_P(PSTR("h: "), false);
+        oled_write_P(PSTR("h:"), false);
         oled_write(get_u8_str(rgblight_get_hue(), ' '), false);
-        oled_write_P(PSTR("s: "), false);
+        oled_write_P(PSTR("s:"), false);
         oled_write(get_u8_str(rgblight_get_sat(), ' '), false);
-        oled_write_P(PSTR("v: "), false);
+        oled_write_P(PSTR("v:"), false);
         oled_write_ln(get_u8_str(rgblight_get_val(), ' '), false);
 #   endif
+
+    // oled_write_P(PSTR("x_rev_max:"), true);
+    // oled_write_ln(get_u16_str(x_rev_max, ' '), true);
+    // oled_write_P(PSTR("y_rev_max:"), true);
+    // oled_write_ln(get_u16_str(y_rev_max, ' '), true);
     return false;
 }
 #endif

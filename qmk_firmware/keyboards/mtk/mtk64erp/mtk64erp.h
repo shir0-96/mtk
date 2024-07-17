@@ -56,6 +56,44 @@ SPDX-License-Identifier: GPL-2.0-or-later
 // #define SCRL_TO QK_KB_5
 // #define SCRL_IN QK_KB_6
 
+typedef struct {
+    int16_t x;
+    int16_t y;
+} mtk_motion_t;
+
+typedef union {
+    uint32_t raw;
+    struct {
+        uint16_t cpi : 9;
+        uint8_t sdiv : 3; // scroll divider
+    };
+} ee_config_t;
+
+typedef struct {
+        bool this_have_ball;
+        bool that_enable;
+        bool that_have_ball;
+
+        uint16_t cpi_value;
+        bool    cpi_changed;
+
+        bool     scroll_mode;
+        bool     scroll_mode_changed;
+        uint8_t  scroll_div;
+        bool     scroll_div_changed;
+
+        uint32_t scroll_snap_last;
+        int8_t   scroll_snap_tension_h;
+
+//        uint16_t       last_kc;
+//        keypos_t       last_pos;
+//        report_mouse_t last_mouse;
+} mtk_config_t;
+
+extern mtk_motion_t mtk_motion;
+extern ee_config_t ee_config;
+extern mtk_config_t mtk_config;
+
 enum custom_keycodes {
     KBC_RST = SAFE_RANGE, // configuration: reset to default
     KBC_SAVE,             // configuration: save to EEPROM
@@ -80,13 +118,35 @@ enum custom_keycodes {
     AM_TO_RST_DEC,  //Decrement AUTO_MOUSE_TIME
 };
 
-// // エンコーダー有効時、指定がなければ左エンコーダーを有効化
-// #if defined(ENCODER_ENABLE) && !defined(ENCODER_LEFT_ENABLE) && !defined(ENCODER_RIGHT_ENABEL)
-// // #warning define ENCODER_LEFT_ENABLE.
-// #    define ENCODER_LEFT_ENABLE
-// #endif
+// #define KBC_RST USER00
+// #define KBC_SAVE USER01
+// #define CPI_I100 USER02
+// #define CPI_D100 USER03
+// #define CPI_I1K USER04
+// #define CPI_D1K USER05
+// #define SCRL_TO USER06
+// #define SCRL_MO USER07
+// #define SCRL_DVI USER08
+// #define SCRL_DVD USER09
+// #define AM_TG_CL USER10
+// #define AM_TO_CL_INC USER11
+// #define AM_TO_CL_DEC USER12
+// #define AM_TO_RST_INC USER13
+// #define AM_TO_RST_DEC USER14
 
-// // 両側ボール用　Slave側スクロール無効化　デフォルトでは未使用
-// #if !defined(ENCODER_ENABLE) && !defined(SLAVE_SCRL_DISABLE)
-// #    define SLAVE_SCRL_DISABLE 0
-// #endif
+//////////////////////////////////////////////////////////////////////////////
+// configration function
+
+bool mtk_get_scroll_mode(void);
+
+void mtk_set_scroll_mode(bool mode);
+
+uint8_t mtk_get_scroll_div(void);
+
+void mtk_set_scroll_div(uint8_t div);
+
+uint16_t mtk_get_cpi(void);
+
+void mtk_set_cpi(uint16_t cpi);
+
+void set_keylog(uint16_t keycode, keyrecord_t *record);
