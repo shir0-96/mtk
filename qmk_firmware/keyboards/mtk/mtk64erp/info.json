@@ -9,8 +9,8 @@
         "bootmagic": false,
         "command": false,
         "console": false,
-        "extrakey": false,
-        "mousekey": false,
+        "extrakey": true,
+        "mousekey": true,
         "oled": true,
         "encoder": true,
         "nkro": true

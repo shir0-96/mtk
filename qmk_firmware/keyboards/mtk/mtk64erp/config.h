@@ -71,12 +71,15 @@
 //#    define POINTING_DEVICE_LEFT
 #    define POINTING_DEVICE_RIGHT
 //#    define POINTING_DEVICE_COMBINED
-//#    define POINTING_DEVICE_ROTATION_270
-//#    define POINTING_DEVICE_ROTATION_90_RIGHT
 
 #ifdef CONSOLE_ENABLE
-//#    define POINTING_DEVICE_DEBUG
+#    define POINTING_DEVICE_DEBUG
 #endif
+
+#define POINTING_DEVICE_AUTO_MOUSE_ENABLE // 有効化
+#define AUTO_MOUSE_DEFAULT_LAYER 7 // 切り替えるマウスレイヤー番号を指定
+#define AUTO_MOUSE_TIME 500 // マウスが止まってから元のレイヤーに戻るまでの時間(ms)
+
 //#    define ROTATIONAL_TRANSFORM_ANGLE  -25
 //#    define POINTING_DEVICE_INVERT_Y
 //#    define POINTING_DEVICE_TASK_THROTTLE_MS 1

@@ -83,19 +83,15 @@ mtk_config_t mtk_config = {
 #endif
 
 #ifndef MTK_SCROLL_DIV_DEFAULT
-#    define MTK_SCROLL_DIV_DEFAULT 4 // 4: 1/8 (1/2^(n-1))
+#    define MTK_SCROLL_DIV_DEFAULT 8
 #endif
 
 #ifndef MTK_SCROLL_DIV_MAX
-#    define MTK_SCROLL_DIV_MAX 8
-#endif
-
-#ifndef MTK_REPORTMOUSE_INTERVAL
-#    define MTK_REPORTMOUSE_INTERVAL 8 // mouse report rate: 125Hz
+#    define MTK_SCROLL_DIV_MAX 16
 #endif
 
 #ifndef MTK_SCROLLBALL_INHIVITOR
-#    define MTK_SCROLLBALL_INHIVITOR 50
+#    define MTK_SCROLLBALL_INHIVITOR 5
 #endif
 
 #ifndef MTK_SCROLLSNAP_ENABLE
@@ -124,12 +120,13 @@ void eeconfig_init_kb(void) {
     mtk_config.cpi_value = MTK_CPI_DEFAULT;
     mtk_config.cpi_changed = false;
     mtk_config.scroll_mode = false;
-    mtk_config.scroll_mode_changed = false;
     mtk_config.scroll_div = MTK_SCROLL_DIV_DEFAULT;
+    mtk_config.auto_mouse_mode = true;
 
     ee_config_t c = {
         .cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP,
         .sdiv = mtk_config.scroll_div,
+        .auto_mouse = mtk_config.auto_mouse_mode,
     };
     eeconfig_update_kb(c.raw);
     eeconfig_init_user();
@@ -141,6 +138,8 @@ void matrix_init_kb(void) {
     ee_config.raw = eeconfig_read_kb();
     mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
     mtk_set_scroll_div(ee_config.sdiv);
+    mtk_set_auto_mouse_mode(ee_config.auto_mouse);
+
     if (mtk_config.cpi_value > PMW33XX_CPI_MAX){
         eeconfig_init_kb();
     }
@@ -150,66 +149,108 @@ void matrix_init_kb(void) {
 void pointing_device_init_kb(void) {
         pmw33xx_init(0);         // index 1 is the second device.
         pmw33xx_set_cpi(0, mtk_config.cpi_value); // applies to first sensor
+        set_auto_mouse_enable(mtk_config.auto_mouse_mode);
 }
 
-int16_t x_rev_max = 0;
-int16_t y_rev_max = 0;
+// Scroll Accumulation
+static int16_t scroll_h;
+static int16_t scroll_v;
+//static int16_t h_acm = 0;
+//ßstatic int16_t v_acm = 0;
+static int16_t x_rev_max = 0;
+static int16_t y_rev_max = 0;
 report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
 
 
-    int16_t x_rev =  mouse_report.x;
-    int16_t y_rev =  mouse_report.y;
+    int16_t x_rev =  mouse_report.y * -1;
+    int16_t y_rev =  mouse_report.x * -1;
     x_rev_max = (x_rev_max < x_rev ?  x_rev : x_rev_max);
     y_rev_max = (y_rev_max < y_rev ?  y_rev : y_rev_max);
 
-    if (false) {
-        // // rock scroll direction
-        // if (abs(x_rev) > abs(y_rev)) {
-        //     y_rev = 0;
-        // } else {
-        //     x_rev = 0;
-        // }
+    if (mtk_get_scroll_mode()) {
+        if (abs(x_rev) > abs(y_rev)) {
+            y_rev = 0;
+        } else {
+            x_rev = 0;
+        }
+
+        // oddball accumulate scroll
+        scroll_h += x_rev;
+        scroll_v += y_rev;
+
+        int8_t scaled_scroll_h = scroll_h / (mtk_get_scroll_div() * 8);
+        int8_t scaled_scroll_v = scroll_v / (mtk_get_scroll_div() * 8);
+
+        // clear accumulated scroll on assignment
+
+        if (scaled_scroll_h != 0) {
+            mouse_report.h = -scaled_scroll_h;
+            scroll_h       = 0;
+        }
+
+        if (scaled_scroll_v != 0) {
+            mouse_report.v = -scaled_scroll_v;
+            scroll_v       = 0;
+        }
 
         // // accumulate scroll
-        // h_acm += x_rev * cocot_config.scrl_inv;
-        // v_acm += y_rev * cocot_config.scrl_inv * -1;
+        // h_acm += x_rev ;
+        // v_acm += y_rev * -1;
 
-        // int8_t h_rev = h_acm >> scrl_div_array[cocot_config.scrl_div];
-        // int8_t v_rev = v_acm >> scrl_div_array[cocot_config.scrl_div];
+        // int8_t h_rev = h_acm >> mtk_get_scroll_div();
+        // int8_t v_rev = v_acm >> mtk_get_scroll_div();
 
         // // clear accumulated scroll on assignment
 
         // if (h_rev != 0) {
-        //     if (mouse_report.h + h_rev > 127) {
-        //         h_rev = 127 - mouse_report.h;
-        //     } else if (mouse_report.h + h_rev < -127) {
-        //         h_rev = -127 - mouse_report.h;
+        //     if (mouse_report.h + h_rev > MTK_SCROLLBALL_INHIVITOR) {
+        //         h_rev = - mouse_report.h;
+        //     } else if (mouse_report.h + h_rev < MTK_SCROLLBALL_INHIVITOR * -1) {
+        //         h_rev = - mouse_report.h;
         //     }
-        //     mouse_report.h += h_rev;
-        //     h_acm -= h_rev << scrl_div_array[cocot_config.scrl_div];
+        //     mouse_report.h += h_rev + (h_rev > 0 ? MTK_SCROLLBALL_INHIVITOR * -1 : MTK_SCROLLBALL_INHIVITOR);
+        //     h_acm -= h_rev << mtk_get_scroll_div();
         // }
         // if (v_rev != 0) {
-        //     if (mouse_report.v + v_rev > 127) {
-        //         v_rev = 127 - mouse_report.v;
-        //     } else if (mouse_report.v + v_rev < -127) {
-        //         v_rev = -127 - mouse_report.v;
+        //     if (mouse_report.v + v_rev > MTK_SCROLLBALL_INHIVITOR) {
+        //         v_rev = - mouse_report.v;
+        //     } else if (mouse_report.v + v_rev < MTK_SCROLLBALL_INHIVITOR * -1) {
+        //         v_rev = - mouse_report.v;
         //     }
-        //     mouse_report.v += v_rev;
-        //     v_acm -= v_rev << scrl_div_array[cocot_config.scrl_div];
+        //     mouse_report.v += v_rev + (v_rev > 0 ? MTK_SCROLLBALL_INHIVITOR * -1 : MTK_SCROLLBALL_INHIVITOR) ;
+        //     v_acm -= v_rev << mtk_get_scroll_div();
         // }
 
         mouse_report.x = 0;
         mouse_report.y = 0;
-        mouse_report.h = y_rev * -1;
-        mouse_report.v = x_rev * -1;
+
     } else {
-        mouse_report.x = y_rev * -1;
-        mouse_report.y = x_rev * -1;
+        mouse_report.x = x_rev;
+        mouse_report.y = y_rev;
         mouse_report.h = 0;
         mouse_report.v = 0;
     }
 
     return pointing_device_task_user(mouse_report);
+}
+
+layer_state_t layer_state_set_kb(layer_state_t state) {
+    // Auto enable scroll mode when the highest layer is 3
+    mtk_set_scroll_mode(get_highest_layer(state) == 3);
+
+    #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    switch(get_highest_layer(remove_auto_mouse_layer(state, true))) {
+        case 1 ... 3:
+            state = remove_auto_mouse_layer(state, false);
+            set_auto_mouse_enable(false);
+            break;
+        default:
+            set_auto_mouse_enable(true);
+            break;
+    }
+    #endif
+
+    return layer_state_set_user(state);
 }
 #endif
 
@@ -251,10 +292,12 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 ee_config.raw = eeconfig_read_kb();
                 mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
                 mtk_set_scroll_div(ee_config.sdiv);
+                mtk_set_auto_mouse_mode(ee_config.auto_mouse);
                 break;
             case KBC_SAVE:
                 ee_config.cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP;
                 ee_config.sdiv = mtk_config.scroll_div;
+                ee_config.auto_mouse = mtk_config.auto_mouse_mode;
                 eeconfig_update_kb(ee_config.raw);
                 break;
             case CPI_I100:
@@ -317,13 +360,20 @@ uint16_t mtk_get_cpi(void) {
 void mtk_set_cpi(uint16_t cpi) {
     if (cpi > PMW33XX_CPI_MAX) {
        cpi = PMW33XX_CPI_MAX;
-    }else if (cpi < PMW33XX_CPI_MIN) {
-       cpi = PMW33XX_CPI_MIN;
+    }else if (cpi < PMW33XX_CPI_MIN * 2) {
+       cpi = PMW33XX_CPI_MIN * 2;
     }
     mtk_config.cpi_value   = cpi;
     mtk_config.cpi_changed = true;
-    //pmw33xx_set_cpi(0, cpi == 0 ? MTK_CPI_DEFAULT - 1 : cpi - 1);
     pointing_device_set_cpi(cpi == 0 ? MTK_CPI_DEFAULT - 1 : cpi - 1);
+}
+
+bool mtk_get_auto_mouse_mode(void) {
+    return mtk_config.auto_mouse_mode;
+}
+
+void mtk_set_auto_mouse_mode(bool mode) {
+    mtk_config.auto_mouse_mode = mode;
 }
 
 
@@ -371,11 +421,16 @@ void oled_render_keylog(void) {
 
 char pointing_str[23] = {};
 void oled_render_pointing(void) {
-//    if(mtk_config.cpi_changed || mtk_config.scroll_div_changed || mtk_config.scroll_mode_changed || sizeof(keylog_str) == 0){
-         snprintf(pointing_str, sizeof(pointing_str), "cpi:%-5d div:%-d sc:%-d",
-           mtk_config.cpi_value, mtk_config.scroll_div, mtk_config.scroll_mode);
-//    }
+    snprintf(pointing_str, sizeof(pointing_str), "cpi:%-5d div:%-d sc:%-d",
+    mtk_config.cpi_value, mtk_config.scroll_div, mtk_config.scroll_mode);
     oled_write_ln_P(pointing_str, false);
+}
+
+char rgb_str[25] = {};
+void oled_render_rgb(void) {
+    snprintf(rgb_str, sizeof(rgb_str), "R:%-2d h:%-3d s:%-3d v:%-3d",
+    rgblight_get_mode(), rgblight_get_hue(), rgblight_get_sat(),rgblight_get_val());
+    oled_write_ln_P(rgb_str, false);
 }
 
 bool oled_task_kb(void) {
@@ -386,17 +441,7 @@ bool oled_task_kb(void) {
 
     oled_render_keylog();
     oled_render_pointing();
-
-#   ifdef RGBLIGHT_ENABLE
-        oled_write_P(PSTR("RGB Mode:"), false);
-        oled_write_ln(get_u8_str(rgblight_get_mode(), ' '), false);
-        oled_write_P(PSTR("h:"), false);
-        oled_write(get_u8_str(rgblight_get_hue(), ' '), false);
-        oled_write_P(PSTR("s:"), false);
-        oled_write(get_u8_str(rgblight_get_sat(), ' '), false);
-        oled_write_P(PSTR("v:"), false);
-        oled_write_ln(get_u8_str(rgblight_get_val(), ' '), false);
-#   endif
+    oled_render_rgb();
 
     // oled_write_P(PSTR("x_rev_max:"), true);
     // oled_write_ln(get_u16_str(x_rev_max, ' '), true);

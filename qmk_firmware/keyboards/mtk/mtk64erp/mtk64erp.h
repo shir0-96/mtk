@@ -65,7 +65,8 @@ typedef union {
     uint32_t raw;
     struct {
         uint16_t cpi : 9;
-        uint8_t sdiv : 3; // scroll divider
+        uint8_t  sdiv : 3;          // scroll divider
+        bool     auto_mouse :true;   // auto mouse layer enable/disable
     };
 } ee_config_t;
 
@@ -78,9 +79,10 @@ typedef struct {
         bool    cpi_changed;
 
         bool     scroll_mode;
-        bool     scroll_mode_changed;
+        uint32_t scroll_mode_changed;
         uint8_t  scroll_div;
-        bool     scroll_div_changed;
+
+        bool     auto_mouse_mode;
 
         uint32_t scroll_snap_last;
         int8_t   scroll_snap_tension_h;
@@ -150,3 +152,5 @@ uint16_t mtk_get_cpi(void);
 void mtk_set_cpi(uint16_t cpi);
 
 void set_keylog(uint16_t keycode, keyrecord_t *record);
+
+void  mtk_set_auto_mouse_mode(bool mode);
