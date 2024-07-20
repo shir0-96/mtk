@@ -77,7 +77,6 @@ mtk_config_t mtk_config = {
 #    define MTK_CPI_DEFAULT 1000
 #endif
 
-
 #ifndef MTK_SCROLL_DIV_MIN
 #    define MTK_SCROLL_DIV_MIN 1
 #endif
@@ -147,8 +146,8 @@ void matrix_init_kb(void) {
 }
 
 void pointing_device_init_kb(void) {
-        pmw33xx_init(0);         // index 1 is the second device.
-        pmw33xx_set_cpi(0, mtk_config.cpi_value); // applies to first sensor
+        pmw33xx_init(0);                                    // index 1 is the second device.
+        pmw33xx_set_cpi(0, mtk_config.cpi_value);       // applies to first sensor
         set_auto_mouse_enable(mtk_config.auto_mouse_mode);
 }
 
@@ -193,7 +192,7 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
             scroll_v       = 0;
         }
 
-        // // accumulate scroll
+        // accumulate scroll
         // h_acm += x_rev ;
         // v_acm += y_rev * -1;
 
@@ -245,7 +244,10 @@ layer_state_t layer_state_set_kb(layer_state_t state) {
             set_auto_mouse_enable(false);
             break;
         default:
-            set_auto_mouse_enable(true);
+            if(!mtk_get_auto_mouse_mode()){
+                state = remove_auto_mouse_layer(state, false);
+            }
+            set_auto_mouse_enable(mtk_get_auto_mouse_mode());
             break;
     }
     #endif
@@ -321,6 +323,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 break;
             case SCRL_DVD:
                 add_scroll_div(-1);
+                break;
+
+            case AM_TG_CL:
+                mtk_set_auto_mouse_mode(!mtk_config.auto_mouse_mode);
                 break;
 
             default:
@@ -443,10 +449,6 @@ bool oled_task_kb(void) {
     oled_render_pointing();
     oled_render_rgb();
 
-    // oled_write_P(PSTR("x_rev_max:"), true);
-    // oled_write_ln(get_u16_str(x_rev_max, ' '), true);
-    // oled_write_P(PSTR("y_rev_max:"), true);
-    // oled_write_ln(get_u16_str(y_rev_max, ' '), true);
     return false;
 }
 #endif

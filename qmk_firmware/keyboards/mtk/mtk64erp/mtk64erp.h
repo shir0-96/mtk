@@ -116,8 +116,8 @@ enum custom_keycodes {
     AM_TG_CL,       //Toggle auto mouse layer
     AM_TO_CL_INC,   //Increment AUTO_MOUSE_TIME
     AM_TO_CL_DEC,   //Decrement AUTO_MOUSE_TIME
-    AM_TO_RST_INC,  //Increment AUTO_MOUSE_TIME
-    AM_TO_RST_DEC,  //Decrement AUTO_MOUSE_TIME
+    AM_TO_OUT_INC,  //Increment AUTO_MOUSE_TIME_OUT
+    AM_TO_OUT_DEC,  //Decrement AUTO_MOUSE_TIME_OUT
 };
 
 // #define KBC_RST USER00
@@ -153,4 +153,10 @@ void mtk_set_cpi(uint16_t cpi);
 
 void set_keylog(uint16_t keycode, keyrecord_t *record);
 
+bool mtk_get_auto_mouse_mode(void);
+
 void  mtk_set_auto_mouse_mode(bool mode);
+
+bool mtk_get_auto_mouse_time_out(void);
+
+void  mtk_set_auto_mouse_time_out(bool mode);
