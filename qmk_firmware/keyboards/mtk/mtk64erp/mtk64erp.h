@@ -57,16 +57,17 @@ SPDX-License-Identifier: GPL-2.0-or-later
 // #define SCRL_IN QK_KB_6
 
 typedef struct {
-    int16_t x;
-    int16_t y;
+        int16_t x;
+        int16_t y;
+        int16_t active_time;
 } mtk_motion_t;
-
 typedef union {
     uint32_t raw;
     struct {
-        uint16_t cpi : 9;
-        uint8_t  sdiv : 3;          // scroll divider
-        bool     auto_mouse :true;   // auto mouse layer enable/disable
+        uint8_t cpi;
+        uint8_t  sdiv;          // scroll divider
+        bool     auto_mouse;   // auto mouse layer enable/disable
+        uint8_t  auto_mouse_time_out;
     };
 } ee_config_t;
 
@@ -83,9 +84,12 @@ typedef struct {
         uint8_t  scroll_div;
 
         bool     auto_mouse_mode;
+        uint16_t auto_mouse_time_out;
 
         uint32_t scroll_snap_last;
         int8_t   scroll_snap_tension_h;
+
+        mtk_motion_t motion;
 
 //        uint16_t       last_kc;
 //        keypos_t       last_pos;
@@ -155,8 +159,10 @@ void set_keylog(uint16_t keycode, keyrecord_t *record);
 
 bool mtk_get_auto_mouse_mode(void);
 
-void  mtk_set_auto_mouse_mode(bool mode);
+void mtk_set_auto_mouse_mode(bool mode);
 
-bool mtk_get_auto_mouse_time_out(void);
+uint16_t mtk_get_auto_mouse_time_out(void);
 
-void  mtk_set_auto_mouse_time_out(bool mode);
+void mtk_set_auto_mouse_time_out(uint16_t timeout);
+
+// void sync_motion_data(void);

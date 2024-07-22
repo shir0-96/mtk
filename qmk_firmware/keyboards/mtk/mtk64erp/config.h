@@ -42,7 +42,8 @@
 //#define SPLIT_HAND_MATRIX_GRID  F7, D7
 
 // #define SOFT_SERIAL_PIN         GP1
-// #define SPLIT_HAND_MATRIX_GRID  GP21, GP23
+#define SPLIT_HAND_MATRIX_GRID  GP21, GP23
+#define SPLIT_HAND_MATRIX_GRID_LOW_IS_LEFT
 // #define SPLIT_USB_DETECT
 // #define SPLIT_USB_TIMEOUT       500
 // #define NO_SUSPEND_POWER_DOWN
@@ -78,7 +79,8 @@
 
 #define POINTING_DEVICE_AUTO_MOUSE_ENABLE // 有効化
 #define AUTO_MOUSE_DEFAULT_LAYER 7 // 切り替えるマウスレイヤー番号を指定
-#define AUTO_MOUSE_TIME 500 // マウスが止まってから元のレイヤーに戻るまでの時間(ms)
+#define AUTO_MOUSE_TIME 1000 // マウスが止まってから元のレイヤーに戻るまでの時間(ms)
+#define AUTO_MOUSE_THRESHOLD 200 //レイヤーを切り替えるために必要なマウスの移動量
 
 //#    define ROTATIONAL_TRANSFORM_ANGLE  -25
 //#    define POINTING_DEVICE_INVERT_Y
@@ -147,12 +149,20 @@
 #   define OLED_DISPLAY_128X64
 #   define OLED_TIMEOUT 60000
 #   define OLED_BRIGHTNESS 128
+#   define OLED_SCROLL_TIMEOUT 0
+#ifndef OLED_FONT_H
+#   define OLED_FONT_H "keyboards/mtk/mtk64erp/glcdfont.c"
 #endif
+#endif
+
+//#define SPLIT_TRANSACTION_IDS_USER MOTION_DATA_SYNC
 
 #ifdef RGBLIGHT_ENABLE
   #define WS2812_DI_PIN GP0
-  #undef RGBLED_NUM
-  #define RGBLED_NUM 14
+//  #undef WS2812_LED_COUNT
+//  #define WS2812_LED_COUNT 14
+  #undef RGBLIGHT_LED_COUNT
+  #define RGBLIGHT_LED_COUNT 14
   #undef RGBLED_SPLIT
   #define RGBLED_SPLIT {7, 7}
 
