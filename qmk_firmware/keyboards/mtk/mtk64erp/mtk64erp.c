@@ -62,6 +62,10 @@ const matrix_row_t matrix_mask[MATRIX_ROWS] = {
 #    define MTK_SCROLL_DIV_MAX 32
 #endif
 
+#ifndef MTK_AUTO_MOUSE_TIMEOUT_DEFAULT
+#    define MTK_AUTO_MOUSE_TIMEOUT_DEFAULT 1000
+#endif
+
 #ifndef MTK_SCROLLBALL_INHIVITOR
 #    define MTK_SCROLLBALL_INHIVITOR 5
 #endif
@@ -88,10 +92,6 @@ const matrix_row_t matrix_mask[MATRIX_ROWS] = {
 
 ee_config_t ee_config;
 mtk_config_t mtk_config = {
-    .this_have_ball = false,
-    .that_enable    = false,
-    .that_have_ball = false,
-
     .cpi_value   = MTK_CPI_DEFAULT,
     .cpi_changed = false,
 
@@ -99,7 +99,7 @@ mtk_config_t mtk_config = {
     .scroll_div  = MTK_SCROLL_DIV_DEFAULT,
 
     .auto_mouse_mode = true,
-    .auto_mouse_time_out = 0,
+    .auto_mouse_time_out = MTK_AUTO_MOUSE_TIMEOUT_DEFAULT,
 };
 
 mtk_motion_t remote_motion;
@@ -363,6 +363,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 mtk_set_scroll_div(ee_config.sdiv);
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
                 mtk_set_auto_mouse_mode(ee_config.auto_mouse);
+                mtk_set_auto_mouse_time_out(ee_config.auto_mouse_time_out);
 #endif
                 break;
             case KBC_SAVE:
@@ -370,6 +371,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 ee_config.sdiv = mtk_config.scroll_div;
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
                 ee_config.auto_mouse = mtk_config.auto_mouse_mode;
+                ee_config.auto_mouse_time_out = mtk_config.auto_mouse_time_out;
 #endif
                 eeconfig_update_kb(ee_config.raw);
                 break;
@@ -422,9 +424,6 @@ bool mtk_get_scroll_mode(void) {
 }
 
 void mtk_set_scroll_mode(bool mode) {
-    if (mode != mtk_config.scroll_mode) {
-        mtk_config.scroll_mode_changed = timer_read32();
-    }
     mtk_config.scroll_mode = mode;
 }
 

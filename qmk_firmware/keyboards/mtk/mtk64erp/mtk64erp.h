@@ -72,15 +72,10 @@ typedef union {
 } ee_config_t;
 
 typedef struct {
-        bool this_have_ball;
-        bool that_enable;
-        bool that_have_ball;
-
         uint16_t cpi_value;
         bool    cpi_changed;
 
         bool     scroll_mode;
-        uint32_t scroll_mode_changed;
         uint8_t  scroll_div;
 
         bool     auto_mouse_mode;
