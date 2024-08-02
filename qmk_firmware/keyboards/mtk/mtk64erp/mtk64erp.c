@@ -141,11 +141,10 @@ void eeconfig_init_kb(void) {
     };
     eeconfig_update_kb(c.raw);
     eeconfig_init_user();
+    load_mtk_config();
 }
 
-void matrix_init_kb(void) {
-    // is safe to just read CPI setting since matrix init
-    // comes before pointing device init.
+void load_mtk_config(void) {
     ee_config.raw = eeconfig_read_kb();
     mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
     mtk_set_scroll_div(ee_config.sdiv);
@@ -153,7 +152,20 @@ void matrix_init_kb(void) {
     mtk_set_auto_mouse_mode(ee_config.auto_mouse);
     mtk_set_auto_mouse_time_out(ee_config.auto_mouse_time_out * 10);
 #endif
+}
 
+void save_mtk_config(void) {
+    ee_config.cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP;
+    ee_config.sdiv = mtk_config.scroll_div;
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    ee_config.auto_mouse = mtk_config.auto_mouse_mode;
+    ee_config.auto_mouse_time_out = mtk_config.auto_mouse_time_out;
+#endif
+    eeconfig_update_kb(ee_config.raw);
+}
+
+void matrix_init_kb(void) {
+    load_mtk_config();
     if (mtk_config.cpi_value > PMW33XX_CPI_MAX){
         eeconfig_init_kb();
     }
@@ -334,18 +346,35 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         keycode &= 0xff;
     }
 
-    switch (keycode) {
+/* If Mousekeys is disabled, then use handle the mouse button
+ * keycodes.  This makes things simpler, and allows usage of
+ * the keycodes in a consistent manner.  But only do this if
+ * Mousekeys is not enable, so it's not handled twice.
+ */
 #ifndef MOUSEKEY_ENABLE
-        // process KC_MS_BTN1~8 by myself
-        // See process_action() in quantum/action.c for details.
-        case KC_MS_BTN1 ... KC_MS_BTN8: {
-            extern void register_mouse(uint8_t mouse_keycode, bool pressed);
-            register_mouse(keycode, record->event.pressed);
-            // to apply QK_MODS actions, allow to process others.
-            return true;
+    if (IS_MOUSEKEY_BUTTON(keycode)) {
+        report_mouse_t currentReport = pointing_device_get_report();
+        if (record->event.pressed) {
+            currentReport.buttons |= 1 << (keycode - KC_MS_BTN1);
+        } else {
+            currentReport.buttons &= ~(1 << (keycode - KC_MS_BTN1));
         }
+        pointing_device_set_report(currentReport);
+        pointing_device_send();
+    }
 #endif
 
+    switch (keycode) {
+// #ifndef MOUSEKEY_ENABLE
+//         // process KC_MS_BTN1~8 by myself
+//         // See process_action() in quantum/action.c for details.
+//         case KC_MS_BTN1 ... KC_MS_BTN8: {
+//             extern void register_mouse(uint8_t mouse_keycode, bool pressed);
+//             register_mouse(keycode, record->event.pressed);
+//             // to apply QK_MODS actions, allow to process others.
+//             return true;
+//         }
+// #endif
         case SCRL_MO:
             mtk_set_scroll_mode(record->event.pressed);
             return false;
@@ -358,22 +387,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 #endif
         switch (keycode) {
             case KBC_RST:
-                ee_config.raw = eeconfig_read_kb();
-                mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
-                mtk_set_scroll_div(ee_config.sdiv);
-#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
-                mtk_set_auto_mouse_mode(ee_config.auto_mouse);
-                mtk_set_auto_mouse_time_out(ee_config.auto_mouse_time_out);
-#endif
+                load_mtk_config();
                 break;
             case KBC_SAVE:
-                ee_config.cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP;
-                ee_config.sdiv = mtk_config.scroll_div;
-#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
-                ee_config.auto_mouse = mtk_config.auto_mouse_mode;
-                ee_config.auto_mouse_time_out = mtk_config.auto_mouse_time_out;
-#endif
-                eeconfig_update_kb(ee_config.raw);
+                save_mtk_config();
                 break;
             case CPI_I100:
                 add_cpi(100);

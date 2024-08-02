@@ -160,4 +160,6 @@ uint16_t mtk_get_auto_mouse_time_out(void);
 
 void mtk_set_auto_mouse_time_out(uint16_t timeout);
 
+void load_mtk_config(void);
+
 // void sync_motion_data(void);
