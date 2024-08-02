@@ -62,10 +62,6 @@ const matrix_row_t matrix_mask[MATRIX_ROWS] = {
 #    define MTK_SCROLL_DIV_MAX 32
 #endif
 
-#ifndef MTK_AUTO_MOUSE_TIMEOUT_DEFAULT
-#    define MTK_AUTO_MOUSE_TIMEOUT_DEFAULT 1000
-#endif
-
 #ifndef MTK_SCROLLBALL_INHIVITOR
 #    define MTK_SCROLLBALL_INHIVITOR 5
 #endif
@@ -99,7 +95,7 @@ mtk_config_t mtk_config = {
     .scroll_div  = MTK_SCROLL_DIV_DEFAULT,
 
     .auto_mouse_mode = true,
-    .auto_mouse_time_out = MTK_AUTO_MOUSE_TIMEOUT_DEFAULT,
+    .auto_mouse_time_out = AUTO_MOUSE_TIME,
 };
 
 mtk_motion_t remote_motion;
@@ -310,29 +306,7 @@ layer_state_t layer_state_set_kb(layer_state_t state) {
     return layer_state_set_user(state);
 }
 
-#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
-// bool auto_mouse_activation(report_mouse_t mouse_report) {
-//     bool activate = false;
-//     mtk_config.motion.x += mouse_report.x;
-//     mtk_config.motion.y += mouse_report.y;
-
-//     if (abs(mtk_config.motion.x) + abs(mtk_config.motion.y)> AUTO_MOUSE_THRESHOLD){
-//         mtk_config.motion.x = 0;
-//         mtk_config.motion.y = 0;
-//         mtk_config.motion.active_time = timer_read();
-//         activate = true;
-//     } else if(mouse_report.x == 0 || mouse_report.y == 0 || timer_elapsed(mtk_config.motion.active_time) > 500){
-//         //カウントリセット
-//         mtk_config.motion.x = 0;
-//         mtk_config.motion.y = 0;
-//         mtk_config.motion.active_time = timer_read();
-//     }
-//     return activate;
-// }
 #endif
-
-#endif
-
 
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -346,46 +320,15 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         keycode &= 0xff;
     }
 
-/* If Mousekeys is disabled, then use handle the mouse button
- * keycodes.  This makes things simpler, and allows usage of
- * the keycodes in a consistent manner.  But only do this if
- * Mousekeys is not enable, so it's not handled twice.
- */
-#ifndef MOUSEKEY_ENABLE
-    if (IS_MOUSEKEY_BUTTON(keycode)) {
-        report_mouse_t currentReport = pointing_device_get_report();
-        if (record->event.pressed) {
-            currentReport.buttons |= 1 << (keycode - KC_MS_BTN1);
-        } else {
-            currentReport.buttons &= ~(1 << (keycode - KC_MS_BTN1));
-        }
-        pointing_device_set_report(currentReport);
-        pointing_device_send();
-    }
-#endif
-
-    switch (keycode) {
-// #ifndef MOUSEKEY_ENABLE
-//         // process KC_MS_BTN1~8 by myself
-//         // See process_action() in quantum/action.c for details.
-//         case KC_MS_BTN1 ... KC_MS_BTN8: {
-//             extern void register_mouse(uint8_t mouse_keycode, bool pressed);
-//             register_mouse(keycode, record->event.pressed);
-//             // to apply QK_MODS actions, allow to process others.
-//             return true;
-//         }
-// #endif
-        case SCRL_MO:
-            mtk_set_scroll_mode(record->event.pressed);
-            return false;
-    }
-
-    // process events which works on pressed only.
     if (record->event.pressed) {
 #ifdef OLED_ENABLE
         set_keylog(keycode, record);
 #endif
         switch (keycode) {
+        // process events which works on pressed only.
+            case SCRL_MO:
+                mtk_set_scroll_mode(record->event.pressed);
+                break;
             case KBC_RST:
                 load_mtk_config();
                 break;
@@ -404,7 +347,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             case CPI_D1K:
                 add_cpi(-1000);
                 break;
-
             case SCRL_TO:
                 mtk_set_scroll_mode(!mtk_config.scroll_mode);
                 break;
