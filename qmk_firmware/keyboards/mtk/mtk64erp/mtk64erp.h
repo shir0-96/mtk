@@ -64,18 +64,20 @@ typedef struct {
 typedef union {
     uint32_t raw;
     struct {
-        uint8_t cpi;
+        uint8_t  cpi;
         uint8_t  sdiv;          // scroll divider
-        bool     auto_mouse;   // auto mouse layer enable/disable
         uint8_t  auto_mouse_time_out;
+        bool     auto_mouse;    // auto mouse layer enable/disable
+        bool     sdir;          // scroll direction
     };
 } ee_config_t;
 
 typedef struct {
         uint16_t cpi_value;
-        bool    cpi_changed;
+        bool     cpi_changed;
 
         bool     scroll_mode;
+        bool     scroll_direction;
         uint8_t  scroll_div;
 
         bool     auto_mouse_mode;
@@ -96,8 +98,8 @@ extern ee_config_t ee_config;
 extern mtk_config_t mtk_config;
 
 enum custom_keycodes {
-    KBC_RST = SAFE_RANGE, // configuration: reset to default
-    KBC_SAVE,             // configuration: save to EEPROM
+    KBC_LOAD = QK_KB_0,     // configuration: reset to default
+    KBC_SAVE,               // configuration: save to EEPROM
 
     CPI_I100, // CPI +100 CPI
     CPI_D100, // CPI -100 CPI
@@ -107,16 +109,15 @@ enum custom_keycodes {
     // In scroll mode, motion from primary trackball is treated as scroll
     // wheel.
     SCRL_TO,  // Toggle scroll mode
-    SCRL_MO,  // Momentary scroll mode[
+    SCRL_MO,  // Momentary scroll mode
+    SCRL_INV, // Invert scroll direction
 
     SCRL_DVI, // Increment scroll divider
     SCRL_DVD, // Decrement scroll divider
 
-    AM_TG_CL,       //Toggle auto mouse layer
-    AM_TO_CL_INC,   //Increment AUTO_MOUSE_TIME
-    AM_TO_CL_DEC,   //Decrement AUTO_MOUSE_TIME
-    AM_TO_OUT_INC,  //Increment AUTO_MOUSE_TIME_OUT
-    AM_TO_OUT_DEC,  //Decrement AUTO_MOUSE_TIME_OUT
+    AM_TG,       //Toggle auto mouse layer
+    AM_TOUT_INC,  //Increment AUTO_MOUSE_TIME_OUT
+    AM_TOUT_DEC,  //Decrement AUTO_MOUSE_TIME_OUT
 };
 
 // #define KBC_RST USER00
@@ -141,6 +142,10 @@ enum custom_keycodes {
 bool mtk_get_scroll_mode(void);
 
 void mtk_set_scroll_mode(bool mode);
+
+bool mtk_get_scroll_direction(void);
+
+void mtk_set_scroll_direction(bool direction);
 
 uint8_t mtk_get_scroll_div(void);
 

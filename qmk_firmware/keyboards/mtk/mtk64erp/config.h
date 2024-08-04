@@ -51,6 +51,8 @@
 #define SPLIT_MAX_CONNECTION_ERRORS 10
 #define SPLIT_CONNECTION_CHECK_TIMEOUT 500
 
+#define SPLIT_LAYER_STATE_ENABLE
+
 #define USB_POLLING_INTERVAL_MS 1
 #define F_SCL 400000UL
 
@@ -79,7 +81,7 @@
 
 #define POINTING_DEVICE_AUTO_MOUSE_ENABLE // 有効化
 #define AUTO_MOUSE_DEFAULT_LAYER 7 // 切り替えるマウスレイヤー番号を指定
-#define AUTO_MOUSE_TIME 1000 // マウスが止まってから元のレイヤーに戻るまでの時間(ms)
+#define AUTO_MOUSE_TIME_OUT 1000 // マウスが止まってから元のレイヤーに戻るまでの時間(ms)
 #define AUTO_MOUSE_THRESHOLD 200 //レイヤーを切り替えるために必要なマウスの移動量
 
 //#    define ROTATIONAL_TRANSFORM_ANGLE  -25
@@ -179,3 +181,6 @@
   #define RGBLIGHT_EFFECT_ALTERNATING
   #define RGBLIGHT_EFFECT_TWINKLE
 #endif
+
+// フットスイッチゴースト対策
+//#define MATRIX_HAS_GHOST

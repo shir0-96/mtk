@@ -50,10 +50,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [3] = LAYOUT(
     RGB_TOG  , _______  , _______  , _______  , _______  , _______  ,                                  RGB_M_P  , RGB_M_B  , RGB_M_R  , RGB_M_SW , RGB_M_SN , RGB_M_K  ,
     RGB_MOD  , RGB_HUI  , RGB_SAI  , RGB_VAI  , _______  , _______  ,                                  RGB_M_X  , RGB_M_G  , RGB_M_T  , RGB_M_TW , _______  , _______  ,
-    RGB_RMOD , RGB_HUD  , RGB_SAD  , RGB_VAD  , SCRL_MO  , SCRL_TO  ,                                  CPI_D1K  , CPI_D100 , CPI_I100 , CPI_I1K  , KBC_SAVE , KBC_RST  ,
-	AM_TO_CL_INC        , AM_TO_CL_DEC        ,
-	AM_TO_OUT_INC       , AM_TO_OUT_DEC       , SCRL_DVD , SCRL_DVI , EE_CLR   ,             EE_CLR  , _______  , _______  , _______  , _______  , _______  , _______  ,
-	QK_BOOT  , AM_TG_CL ,                       _______  , _______  ,                                  _______  , _______  ,                       _______  , QK_BOOT  ,
+    RGB_RMOD , RGB_HUD  , RGB_SAD  , RGB_VAD  , SCRL_MO  , SCRL_TO  ,                                  CPI_D1K  , CPI_D100 , CPI_I100 , CPI_I1K  , KBC_LOAD , KBC_SAVE ,
+	AM_TG    , AM_TOUT_DEC , AM_TOUT_INC ,
+	                                 SCRL_INV , SCRL_DVD , SCRL_DVI , EE_CLR   ,             EE_CLR  , _______  , _______  , _______  , _______  , _______  , _______  ,
+	QK_BOOT  , _______ ,                        _______  , _______  ,                                  _______  , _______  ,                       _______  , QK_BOOT  ,
                           _______  ,            _______  ,             _______ ,             _______ ,            _______  ,             _______ ,
                                                                        _______ ,             _______ ,
     _______  ,            _______  ,            _______  ,                                                        _______  ,             _______ ,            _______

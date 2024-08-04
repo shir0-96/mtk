@@ -29,7 +29,7 @@
       [                               "4,0",                "4,1",    {"x":14},   "11,1",                "11,0" ],
 
       [{"y":-1.25,"x":2.75},  "4,2\n\n\n\n\n\n\n\n\ne0",{"x":0.5},"4,3\n\n\n\n\n\n\n\n\ne1",{"x":7.5},"11,3\n\n\n\n\n\n\n\n\ne2",{"x":0.5},"11,2\n\n\n\n\n\n\n\n\ne3"],
-            
+
       [{"y":1,"x":1,"c":"#cccccc"},   "6,0",     "6,1",     "6,2",    {"x":10},   "13,2",     "13,1"    ,"13,0" ],
 
       [{"r": 10, "rx": 6.0,  "ry":5.0,  "y":-0.5, "x":-0.5},    "5,1"             ],
@@ -41,5 +41,77 @@
       [{"r":-60, "rx":10.0, "ry":6.45,  "y":-0.5, "x":-0.5},    "12,3"            ],
       [{"r":-35, "rx":11.55, "ry":6.5,  "y":-0.5, "x":-0.5},          "12,4"      ]
     ]
-  }
+  },
+  "customKeycodes": [
+        {
+            "name": "KBC\nLOAD",
+            "title": "configuration: load from EEPROM",
+            "shortName": "KBC_LOAD"
+        },
+        {
+            "name": "KBC\nSAVE",
+            "title": "configuration: save to EEPROM",
+            "shortName": "KBC_SAVE"
+        },
+        {
+            "name": "CPI\nI100",
+            "title": "CPI +100 CPI",
+            "shortName": "CPI_I100"
+        },
+        {
+            "name": "CPI\nD100",
+            "title": "CPI -100 CPI",
+            "shortName": "CPI_D100"
+        },
+        {
+            "name": "CPI\nI1K",
+            "title": "CPI +1000 CPI",
+            "shortName": "CPI_I1K"
+        },
+        {
+            "name": "CPI\nD1K",
+            "title": "CPI -1000 CPI",
+            "shortName": "CPI_D1K"
+        },
+        {
+            "name": "SCRL\nTO",
+            "title": "Toggle scroll mode",
+            "shortName": "SCRL_TO"
+        },
+        {
+            "name": "SCRL\nMO",
+            "title": "Momentary scroll mode",
+            "shortName": "SCRL_MO"
+        },
+        {
+            "name": "SCRL\nINV",
+            "title": "Invert scroll direction",
+            "shortName": "SCRL_INV"
+        },
+        {
+            "name": "SCRL\nDVI",
+            "title": "Increment scroll divider",
+            "shortName": "SCRL_DVI"
+        },
+        {
+            "name": "SCRL\nDVD",
+            "title": "Decrement scroll divider",
+            "shortName": "SCRL_DVD"
+        },
+        {
+            "name": "AM\nTG",
+            "title": "Toggle auto mouse layer",
+            "shortName": "AM_TG"
+        },
+        {
+            "name": "AM\nTOUT_INC",
+            "title": "Increment AUTO_MOUSE_TIME_OUT",
+            "shortName": "AM_TO_OUT_INC"
+        },
+        {
+            "name": "AM\nTOUT_DEC",
+            "title": "Decrement AUTO_MOUSE_TIME_OUT",
+            "shortName": "AM_TO_OUT_DEC"
+        }
+    ]
 }

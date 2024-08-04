@@ -42,6 +42,7 @@ const matrix_row_t matrix_mask[MATRIX_ROWS] = {
 #    elif defined(POINTING_DEVICE_COMBINED)
 #        define POINTING_DEVICE_THIS_SIDE true
 #    endif
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Configurations
@@ -90,12 +91,11 @@ ee_config_t ee_config;
 mtk_config_t mtk_config = {
     .cpi_value   = MTK_CPI_DEFAULT,
     .cpi_changed = false,
-
     .scroll_mode = false,
+    .scroll_direction = false,
     .scroll_div  = MTK_SCROLL_DIV_DEFAULT,
-
     .auto_mouse_mode = true,
-    .auto_mouse_time_out = AUTO_MOUSE_TIME,
+    .auto_mouse_time_out = AUTO_MOUSE_TIME_OUT
 };
 
 mtk_motion_t remote_motion;
@@ -113,7 +113,7 @@ static void add_scroll_div(int16_t delta) {
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
 static void add_auto_mouse_time_out(int16_t delta) {
     int16_t v = mtk_get_auto_mouse_time_out() + delta;
-    mtk_set_auto_mouse_time_out(v < 10 ? 10 : v);
+    mtk_set_auto_mouse_time_out(v < 100 ? 100 : v);
 }
 #endif
 
@@ -125,15 +125,19 @@ void eeconfig_init_kb(void) {
     mtk_config.cpi_value = MTK_CPI_DEFAULT;
     mtk_config.cpi_changed = false;
     mtk_config.scroll_mode = false;
+    mtk_config.scroll_direction = false;
     mtk_config.scroll_div = MTK_SCROLL_DIV_DEFAULT;
     mtk_config.auto_mouse_mode = true;
-    mtk_config.auto_mouse_time_out = AUTO_MOUSE_TIME;
+    mtk_config.auto_mouse_time_out = AUTO_MOUSE_TIME_OUT;
 
     ee_config_t c = {
         .cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP,
+        .sdir = mtk_config.scroll_direction,
         .sdiv = mtk_config.scroll_div,
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
         .auto_mouse = mtk_config.auto_mouse_mode,
-        .auto_mouse_time_out = mtk_config.auto_mouse_time_out / 10,
+        .auto_mouse_time_out = mtk_config.auto_mouse_time_out / 100,
+#endif
     };
     eeconfig_update_kb(c.raw);
     eeconfig_init_user();
@@ -143,19 +147,21 @@ void eeconfig_init_kb(void) {
 void load_mtk_config(void) {
     ee_config.raw = eeconfig_read_kb();
     mtk_set_cpi(ee_config.cpi * PMW33XX_CPI_STEP);
+    mtk_set_scroll_direction(ee_config.sdir);
     mtk_set_scroll_div(ee_config.sdiv);
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
     mtk_set_auto_mouse_mode(ee_config.auto_mouse);
-    mtk_set_auto_mouse_time_out(ee_config.auto_mouse_time_out * 10);
+    mtk_set_auto_mouse_time_out(ee_config.auto_mouse_time_out * 100);
 #endif
 }
 
 void save_mtk_config(void) {
     ee_config.cpi  = mtk_config.cpi_value / PMW33XX_CPI_STEP;
+    ee_config.sdir = mtk_config.scroll_direction;
     ee_config.sdiv = mtk_config.scroll_div;
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
     ee_config.auto_mouse = mtk_config.auto_mouse_mode;
-    ee_config.auto_mouse_time_out = mtk_config.auto_mouse_time_out;
+    ee_config.auto_mouse_time_out = mtk_config.auto_mouse_time_out / 100;
 #endif
     eeconfig_update_kb(ee_config.raw);
 }
@@ -239,7 +245,11 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
         }
 
         if (scaled_scroll_v != 0) {
-            mouse_report.v = -scaled_scroll_v;
+            if (mtk_get_scroll_direction()){
+                mouse_report.v = scaled_scroll_v;
+            } else {
+                mouse_report.v = -scaled_scroll_v;
+            }
             scroll_v       = 0;
         }
 
@@ -284,6 +294,7 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     return pointing_device_task_user(mouse_report);
 }
 
+
 layer_state_t layer_state_set_kb(layer_state_t state) {
     // Auto enable scroll mode when the highest layer is 3
     mtk_set_scroll_mode(get_highest_layer(state) == 3);
@@ -306,6 +317,15 @@ layer_state_t layer_state_set_kb(layer_state_t state) {
     return layer_state_set_user(state);
 }
 
+#ifdef SPLIT_LAYER_STATE_ENABLE
+static int oled_anim_elapsed = 0;
+void housekeeping_task_kb(void) {
+    housekeeping_task_user();
+    // OLED animation
+    if(get_highest_layer(layer_state) != 0){
+        oled_anim_elapsed = timer_read();
+    }
+}
 #endif
 
 
@@ -320,16 +340,19 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         keycode &= 0xff;
     }
 
+    switch (keycode) {
+        case SCRL_MO:
+            mtk_set_scroll_mode(record->event.pressed);
+            break;
+    }
+
     if (record->event.pressed) {
 #ifdef OLED_ENABLE
         set_keylog(keycode, record);
 #endif
         switch (keycode) {
         // process events which works on pressed only.
-            case SCRL_MO:
-                mtk_set_scroll_mode(record->event.pressed);
-                break;
-            case KBC_RST:
+            case KBC_LOAD:
                 load_mtk_config();
                 break;
             case KBC_SAVE:
@@ -350,6 +373,9 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             case SCRL_TO:
                 mtk_set_scroll_mode(!mtk_config.scroll_mode);
                 break;
+            case SCRL_INV:
+                mtk_set_scroll_direction(!mtk_config.scroll_direction);
+                break;
             case SCRL_DVI:
                 add_scroll_div(1);
                 break;
@@ -357,14 +383,14 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 add_scroll_div(-1);
                 break;
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
-            case AM_TG_CL:
+            case AM_TG:
                 mtk_set_auto_mouse_mode(!mtk_config.auto_mouse_mode);
                 break;
-            case AM_TO_OUT_INC:
-                add_auto_mouse_time_out(10);
+            case AM_TOUT_INC:
+                add_auto_mouse_time_out(100);
                 break;
-            case AM_TO_OUT_DEC:
-                add_auto_mouse_time_out(-10);
+            case AM_TOUT_DEC:
+                add_auto_mouse_time_out(-100);
                 break;
 #endif
             default:
@@ -384,6 +410,14 @@ bool mtk_get_scroll_mode(void) {
 
 void mtk_set_scroll_mode(bool mode) {
     mtk_config.scroll_mode = mode;
+}
+
+bool mtk_get_scroll_direction(void) {
+    return mtk_config.scroll_direction;
+}
+
+void mtk_set_scroll_direction(bool direction) {
+    mtk_config.scroll_direction = direction;
 }
 
 uint8_t mtk_get_scroll_div(void) {
@@ -480,7 +514,7 @@ char pointing_str[22] = {};
 void oled_render_pointing(void) {
     snprintf(pointing_str, sizeof(pointing_str), "cp:%-5d dv:%-d sc:%-d",
     mtk_config.cpi_value, mtk_config.scroll_div, mtk_config.scroll_mode);
-    oled_write_ln_P(pointing_str, false);
+    oled_write_ln_P(pointing_str, mtk_get_scroll_mode());
 }
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
 char automouse_str[22] = {};
@@ -497,8 +531,8 @@ void oled_render_rgb(void) {
     oled_write_ln_P(rgb_str, false);
 }
 
-static int anim = 0;
-static int anim_rend_time = 0;
+static int anim_frame = 0;
+static int anim_frame_interval = 0;
 
 static void render_logo(void) {
 
@@ -530,17 +564,17 @@ static void render_logo(void) {
       }
     };
 
-    anim += 1;
-    if(anim > 2){
-        anim = 0;
+    anim_frame += 1;
+    if(anim_frame > 2){
+        anim_frame = 0;
     }
 
-    oled_write(indctr[anim]  [0], false);
-    oled_write(indctr[anim]  [1], false);
-    oled_write(indctr[anim]  [2], false);
-    oled_write(indctr[anim]  [3], false);
-    oled_write(indctr[anim]  [4], false);
-    oled_write(indctr[anim]  [5], false);
+    oled_write(indctr[anim_frame]  [0], false);
+    oled_write(indctr[anim_frame]  [1], false);
+    oled_write(indctr[anim_frame]  [2], false);
+    oled_write(indctr[anim_frame]  [3], false);
+    oled_write(indctr[anim_frame]  [4], false);
+    oled_write(indctr[anim_frame]  [5], false);
 }
 
 bool oled_task_kb(void) {
@@ -552,11 +586,15 @@ bool oled_task_kb(void) {
         oled_render_pointing();
         oled_render_auto_mouse();
     } else{
-        if(timer_elapsed(anim_rend_time) > 300){
-            anim_rend_time =  timer_read();
-            render_logo();  // Renders a static logo
-            //oled_scroll_right();  // Turns on scrolling
+#ifdef SPLIT_LAYER_STATE_ENABLE
+        if(timer_elapsed(oled_anim_elapsed) < 1000){
+            if(timer_elapsed(anim_frame_interval) > 300){
+                anim_frame_interval =  timer_read();
+                render_logo();  // Renders a static logo
+                //oled_scroll_right();  // Turns on scrolling
+            }
         }
+#endif
     }
     return false;
 }
