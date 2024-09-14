@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define SOFT_SERIAL_PIN         D2
 #define SPLIT_HAND_MATRIX_GRID  F7, D7
 #define SPLIT_USB_DETECT
-#define SPLIT_USB_TIMEOUT       500
+#define SPLIT_USB_TIMEOUT       2500
 #define NO_SUSPEND_POWER_DOWN
 #define USB_SUSPEND_WAKEUP_DELAY 200
 
