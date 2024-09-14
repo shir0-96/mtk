@@ -40,9 +40,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // #### エンコーダー設定 ####
 // 左エンコーダー有効 左ボール無効（デフォルト）
-#define ENCODER_LEFT_ENABLE
+//#define ENCODER_LEFT_ENABLE
 // 右エンコーダー有効 右ボール無効
-//#define ENCODER_RIGHT_ENABEL
+#define ENCODER_RIGHT_ENABEL
 
 // #### 両側ボール設定 ####
 //#undef ENCODER_ENABLE
