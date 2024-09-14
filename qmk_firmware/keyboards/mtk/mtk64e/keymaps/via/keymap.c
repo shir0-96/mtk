@@ -242,6 +242,23 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     	}
     }
 
+    //レイヤー毎にLEDの色を変更する
+    uint8_t layer = biton32(state);
+    switch (layer){
+        case 1:
+            rgblight_sethsv(HSV_RED);
+            break;
+        case 2:
+            rgblight_sethsv(HSV_BLUE);
+            break;
+        case 3:
+            rgblight_sethsv(HSV_WHITE);
+            break;
+
+        default:
+            rgblight_sethsv(HSV_PURPLE);
+    }
+
     return state;
 }
 
