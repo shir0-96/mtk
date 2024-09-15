@@ -36,7 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DYNAMIC_KEYMAP_LAYER_COUNT 4
 
 // #### 自動マウスレイヤー切替有効化 ####
-#define AUTO_MOUSE_LAYER_ENABLE
+//#define AUTO_MOUSE_LAYER_ENABLE
 
 // #### エンコーダー設定 ####
 // 左エンコーダー有効 左ボール無効（デフォルト）
