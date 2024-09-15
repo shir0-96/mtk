@@ -15,6 +15,8 @@ COMMAND_ENABLE = no         # Commands for debug and configuration
 NKRO_ENABLE = no            # Enable N-Key Rollover
 BACKLIGHT_ENABLE = no       # Enable keyboard backlight functionality
 AUDIO_ENABLE = no           # Audio output
+GRAVE_ESC_ENABLE = no       # GRAVE_ESC-Key
+
 
 # Duplex matrix.
 CUSTOM_MATRIX = lite
