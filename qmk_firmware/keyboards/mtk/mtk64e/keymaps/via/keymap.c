@@ -18,6 +18,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include QMK_KEYBOARD_H
 #include "quantum.h"
 
+//トラックボールを動かすと自動でマウスレイヤーへ切り替え
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+void pointing_device_init_user(void) {
+    set_auto_mouse_enable(true);
+}
+#endif
+
 enum custom_keycodes {
     KC_TG_CLICKABLE = KEYBALL_SAFE_RANGE, //0x5DAF
     KC_TO_CLICKABLE_INC,                  //0x5DB0
